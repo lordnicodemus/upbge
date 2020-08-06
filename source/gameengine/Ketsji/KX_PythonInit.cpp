@@ -57,6 +57,7 @@
 #  include "GPU_material.h"
 #  include "MEM_guardedalloc.h"
 #  include "bgl.h"
+#  include "bl_math_py_api.h"
 #  include "blf_py_api.h"
 #  include "bmesh/bmesh_py_api.h"
 #  include "bpy.h"  // for bpy_sys_module_backup
@@ -66,6 +67,8 @@
 #  include "gpu/gpu_py_api.h"
 #  include "idprop_py_api.h"
 #  include "imbuf_py_api.h"
+#  include "../../intern/cycles/blender/CCL_api.h"
+#  include "../../intern/mantaflow/extern/manta_python_API.h"
 #  include "marshal.h"    /* python header for loading/saving dicts */
 #  include "mathutils.h"  // 'mathutils' module copied here so the blenderlayer can use.
 #  include "py_capi_utils.h"
@@ -2088,6 +2091,16 @@ static struct _inittab bge_internal_modules[] = {{"mathutils", PyInit_mathutils}
                                                  {"aud", AUD_initPython},
 #  endif  // WITH_AUDASPACE
                                                  {nullptr, nullptr}};
+#define WITH_CYCLES 1 //temp
+#define WITH_FLUID 1 //temp
+
+#  ifdef WITH_CYCLES
+/* defined in cycles module */
+static PyObject *CCL_initPython(void)
+{
+  return (PyObject *)CCL_python_module_init();
+}
+#  endif
 
 static struct _inittab bpy_internal_modules[] = {
     {"_bpy_path", BPyInit__bpy_path},
@@ -2095,6 +2108,13 @@ static struct _inittab bpy_internal_modules[] = {
     {"bmesh", BPyInit_bmesh},
     {"gpu", BPyInit_gpu},
     {"idprop", BPyInit_idprop},
+    {"bl_math", BPyInit_bl_math},
+#  ifdef WITH_FLUID
+    {"manta", Manta_initPython},
+#  endif
+#  ifdef WITH_CYCLES
+    {"_cycles", CCL_initPython},
+#  endif
     {NULL, NULL},
 };
 
@@ -2173,6 +2193,12 @@ void initGamePlayerPythonScripting(Main *maggie, int argc, char **argv, bContext
 
   /* Initialize thread support (also acquires lock) */
   PyEval_InitThreads();
+
+#  ifdef WITH_FLUID
+  /* Required to prevent assertion error, see:
+   * https://stackoverflow.com/questions/27844676 */
+  Py_DECREF(PyImport_ImportModule("threading"));
+#  endif
 
   if (first_time) {
 
