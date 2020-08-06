@@ -2194,6 +2194,10 @@ void initGamePlayerPythonScripting(Main *maggie, int argc, char **argv, bContext
   /* Initialize thread support (also acquires lock) */
   PyEval_InitThreads();
 
+  bpy_import_init(PyEval_GetBuiltins());
+
+  bpy_import_main_set(maggie);
+
 #  ifdef WITH_FLUID
   /* Required to prevent assertion error, see:
    * https://stackoverflow.com/questions/27844676 */
@@ -2209,10 +2213,6 @@ void initGamePlayerPythonScripting(Main *maggie, int argc, char **argv, bContext
 
     BPY_atexit_register(); /* this can init any time */
   }
-
-  bpy_import_init(PyEval_GetBuiltins());
-
-  bpy_import_main_set(maggie);
 
   initPySysObjects(maggie);
 
